@@ -5,234 +5,269 @@
 | Field | Value |
 |-------|-------|
 | Project | Specimen Tracking And Storage Information System (STASIS) |
-| Related Document | system_requirements_updated.md |
-| Created | December 2024 |
-| Status | Draft |
+| Related Document | `system_requirements.md` |
+| Last Updated | March 2, 2026 |
+| Status | Active Working Plan |
 | Owner | |
 
 ---
 
-## Overview
+## Purpose
 
-This document outlines the implementation order for STASIS requirements. Requirements are organized into phases based on technical dependencies - some features cannot be built until foundational components exist.
+This plan translates the requirements in `system_requirements.md` into a practical delivery roadmap based on the current codebase. It is intended to be used during active development, not as a generic draft.
 
-### How to Use This Document
+## Current Implementation Snapshot
 
-1. Work through phases sequentially - Phase 2 cannot begin until Phase 1 is complete
-2. Within each phase, items can often be parallelized across team members
-3. Update the Assignee, Status, and Target Date columns as work progresses
-4. Reference requirement IDs to trace back to full specifications in the requirements document
+### Already Implemented
 
-### Status Key
+- ASP.NET Core Razor Pages app structure, authentication, and role-enabled Identity configuration
+- Forced-authentication application flow with password-change enforcement
+- Admin user seeding in `Program.cs`
+- User administration: list users, create users, edit roles/departments, reset passwords
+- Core data models and DbContext for specimens, storage hierarchy, shipments, audit log, and user profiles
+- Sample list page with paging, barcode filter, study filter, sample type filter, and expandable location details
+- PostgreSQL provider configuration and PostgreSQL bootstrap script
+
+### Partially Implemented
+
+- Database schema exists, but the bootstrap script contains fields and tables not represented in the current EF models
+- Navigation and page shells exist for samples, boxes, shipments, audit, and lab setup, but many handlers are placeholders
+- Shipment-related entities exist, but shipment workflows are not implemented in the UI or services
+
+### Not Implemented
+
+- Sample creation and bulk import workflows
+- Box search, placement, movement, and re-boxing workflows
+- Audit trail capture logic
+- Shipment request import, approval, staging, shipping, and manifests
+- Discard approval workflow
+- Filter paper and plasma business rules beyond a few model fields
+- Automated tests
+
+## Status Key
 
 | Status | Meaning |
 |--------|---------|
-| Not Started | Work has not begun |
-| In Progress | Currently being developed |
-| In Review | Development complete, under review/testing |
-| Complete | Deployed and verified |
-| Blocked | Cannot proceed - see notes |
+| Complete | Implemented and visible in the current codebase |
+| In Progress | Started, but missing required behavior or validation |
+| Not Started | No meaningful implementation yet |
+| Blocked | Depends on an earlier architectural or data decision |
 
 ---
 
-## Phase 1: Foundation
+## Phase 0: Stabilize the Baseline
 
-**Phase Goal:** Establish the core data structures and security model that all other features depend on.
+**Goal:** Ensure the current application is a reliable starting point before feature work expands.
 
-**Estimated Duration:** _____ weeks
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 0.1 | N/A | Reconcile EF models with PostgreSQL bootstrap schema | In Progress | Current SQL script includes fields and tables not present in the C# models, such as approvals and shipment batch fields. Pick one source of truth. |
+| 0.2 | N/A | Adopt EF Core migrations for schema changes | Not Started | This should replace hand-maintained drift between models and SQL scripts. |
+| 0.3 | N/A | Remove hard-coded admin seed password from runtime startup | Not Started | Seed logic exists, but production-safe provisioning is still needed. |
+| 0.4 | N/A | Add developer smoke test checklist to README | In Progress | Basic setup exists, but no explicit verification checklist yet. |
 
-**Phase Dependencies:** None - this is the starting point
+**Exit Criteria**
 
-| Order | Req ID | Description | Assignee | Status | Target Date | Notes |
-|-------|--------|-------------|----------|--------|-------------|-------|
-| 1.1 | REQ-SEC-01, REQ-SEC-02 | User roles and access control (Read/Write/Admin) | | Not Started | | Must be first - all operations need authenticated users |
-| 1.2 | REQ-INV-01 | Location hierarchy (Freezer → Rack → Box → Position) | | Not Started | | Core data structure for all storage |
-| 1.3 | REQ-ACC-03, REQ-ACC-04 | Specimen data model and barcode uniqueness validation | | Not Started | | Defines the central entity |
-| 1.4 | REQ-INV-02 | Box management - assign boxes to freezer locations | | Not Started | | Depends on 1.2 |
-| 1.5 | REQ-RPT-03 | Audit trail logging | | Not Started | | Build in from day one - retrofitting is costly |
-
-**Phase 1 Completion Criteria:**
-- [ ] Users can log in with assigned roles
-- [ ] Freezer/Rack/Box/Position hierarchy is defined in database
-- [ ] Specimen table exists with all required fields
-- [ ] Boxes can be created and assigned to freezer locations
-- [ ] All data changes are logged with user, timestamp, old value, new value
+- [ ] The PostgreSQL schema matches the app model
+- [ ] New schema changes are made through migrations
+- [ ] Local setup, secrets, and bootstrap steps are documented and reproducible
 
 ---
 
-## Phase 2: Basic Operations
+## Phase 1: Security and Core Data Foundation
 
-**Phase Goal:** Enable core sample entry, placement, and lookup functionality.
+**Goal:** Lock down user management and confirm the storage/specimen foundation is correct.
 
-**Estimated Duration:** _____ weeks
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 1.1 | REQ-SEC-01, REQ-SEC-02 | Role-based access control (Read, Write, Admin) | In Progress | Roles, auth, and fallback policy exist, but page-level authorization rules are not explicit. |
+| 1.2 | REQ-SEC-01 | Admin user management screens | Complete | `CreateUser`, `Users`, and `EditUser` are implemented. |
+| 1.3 | REQ-INV-01 | Freezer, rack, box, and position data model | In Progress | Core entities exist, but management UI is placeholder-only. |
+| 1.4 | REQ-ACC-03, REQ-ACC-04 | Specimen data model and uniqueness | In Progress | The model supports barcode uniqueness conceptually; validation is not consistently enforced through workflows yet. |
+| 1.5 | REQ-RPT-03 | Audit trail infrastructure | In Progress | Table/model exists, but no change logging is currently written. |
 
-**Phase Dependencies:** Phase 1 must be complete
+**Exit Criteria**
 
-| Order | Req ID | Description | Assignee | Status | Target Date | Notes |
-|-------|--------|-------------|----------|--------|-------------|-------|
-| 2.1 | REQ-ACC-01 | Individual sample registration (manual entry + barcode scan) | | Not Started | | First way to get samples into system |
-| 2.2 | REQ-INV-03 | Sample placement - assign samples to box positions | | Not Started | | Depends on 2.1 |
-| 2.3 | REQ-INV-04 | Conflict detection - prevent double-booking positions | | Not Started | | Depends on 2.2 |
-| 2.4 | REQ-RPT-01 | Search by barcode, study, or box number | | Not Started | | Depends on 2.1 |
-| 2.5 | REQ-RPT-02 | Box location lookup | | Not Started | | Depends on Phase 1.4 |
-| 2.6 | REQ-ACC-02 | Bulk import (CSV/Excel) | | Not Started | | Depends on 2.1, 2.2, 2.3 - do after single entry works |
-
-**Phase 2 Completion Criteria:**
-- [ ] Users can register individual samples via UI and barcode scanner
-- [ ] Samples can be assigned to specific box positions
-- [ ] System rejects attempts to place sample in occupied position
-- [ ] Users can search and find samples with location displayed
-- [ ] Users can look up where a specific box is located
-- [ ] Bulk import successfully processes CSV/Excel files with validation
+- [ ] All protected pages have explicit authorization intent
+- [ ] Storage hierarchy can be maintained through working UI or admin tooling
+- [ ] Barcode uniqueness is enforced through app workflows and database constraints
+- [ ] Audit logging is captured for meaningful changes
 
 ---
 
-## Phase 3: Movement Operations
+## Phase 2: Sample Intake and Search
 
-**Phase Goal:** Enable relocation of samples and boxes, including special handling locations.
+**Goal:** Deliver the minimum viable specimen workflow for day-to-day use.
 
-**Estimated Duration:** _____ weeks
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 2.1 | REQ-RPT-01 | Search/view samples by barcode, study, and sample type | Complete | `Pages/Samples.cshtml` and `SampleService` support this now. |
+| 2.2 | REQ-ACC-01 | Add individual sample registration UI and handler | Not Started | `Pages/Samples/Add.cshtml.cs` is a placeholder. |
+| 2.3 | REQ-ACC-01, REQ-INV-03 | Assign box and row/column during intake | Not Started | Must include validation and available-position checks. |
+| 2.4 | REQ-INV-04 | Prevent duplicate box-position occupancy | Not Started | Should be enforced both in app logic and in the database. |
+| 2.5 | REQ-ACC-02 | Bulk import from CSV/Excel | Not Started | `Pages/Samples/Import.cshtml.cs` is a placeholder. Start with CSV. |
+| 2.6 | REQ-RPT-02 | Box location lookup from sample results | In Progress | Current sample listing shows location details, but box-focused lookup is not implemented. |
 
-**Phase Dependencies:** Phase 2 must be complete
+**Exit Criteria**
 
-| Order | Req ID | Description | Assignee | Status | Target Date | Notes |
-|-------|--------|-------------|----------|--------|-------------|-------|
-| 3.1 | REQ-MOV-01 | Individual move - move one sample between boxes | | Not Started | | Foundation for all movement |
-| 3.2 | REQ-MOV-03 | Box relocation - move entire box to different freezer/rack | | Not Started | | Independent of sample-level moves |
-| 3.3 | REQ-MOV-02 | Bulk move/re-boxing - rescan box to fix discrepancies | | Not Started | | Depends on 3.1 |
-| 3.4 | REQ-MOV-04 | Empty box logic - auto-unassign empty boxes | | Not Started | | Depends on 3.1, 3.3 |
-| 3.5 | REQ-MOV-05 | Box populate - add samples to existing box incrementally | | Not Started | | Depends on 3.1 |
-| 3.6 | REQ-MOV-06 | Move to Temp - temporary holding location | | Not Started | | Depends on 3.1 |
-| 3.7 | REQ-MOV-07 | Move to Trash/Discard - disposal workflow with approvals | | Not Started | | Depends on 3.1 and roles (1.1) |
-
-**Phase 3 Completion Criteria:**
-- [ ] Individual samples can be moved between boxes with audit trail
-- [ ] Entire boxes can be relocated to different freezer/rack positions
-- [ ] Re-scanning a box updates all sample positions to match physical reality
-- [ ] Empty boxes are automatically marked as unassigned
-- [ ] Samples can be added to partially-filled boxes
-- [ ] Samples can be moved to Temp holding location
-- [ ] Discard workflow requires and records ED/Regulatory/PI approval
+- [ ] Users can add a specimen manually from the UI
+- [ ] Users can import a batch of specimens from CSV
+- [ ] Box/position conflicts are blocked clearly
+- [ ] Search results support real operational lookup, not just seeded demo data
 
 ---
 
-## Phase 4: Shipment Management
+## Phase 3: Storage Management and Movement
 
-**Phase Goal:** Enable end-to-end shipment request processing, from import through dispatch.
+**Goal:** Make freezer, rack, box, and movement workflows usable for lab operations.
 
-**Estimated Duration:** _____ weeks
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 3.1 | REQ-INV-02 | Manage freezers, racks, box types, and box assignments | Not Started | `Pages/LabSetup/*` and box-related pages are placeholders. |
+| 3.2 | REQ-RPT-02 | Search boxes and display contents/location | Not Started | `Pages/Boxes/Search.cshtml.cs` is a placeholder. |
+| 3.3 | REQ-MOV-01 | Move an individual sample between boxes | Not Started | `Pages/Boxes/Move.cshtml.cs` is a placeholder. |
+| 3.4 | REQ-MOV-03 | Move an entire box to another rack/freezer | Not Started | Likely belongs in box search/details workflow. |
+| 3.5 | REQ-MOV-02 | Re-box a full set of specimens by scan/update | Not Started | `Pages/Boxes/Rebox.cshtml.cs` is a placeholder. |
+| 3.6 | REQ-MOV-05 | Add specimens into partially populated boxes | Not Started | Should reuse the same slot-allocation rules as intake. |
+| 3.7 | REQ-MOV-06 | Move specimens to Temp | Not Started | PostgreSQL seed data includes `SYSTEM-TEMP`; behavior is not implemented. |
+| 3.8 | REQ-MOV-04 | Empty box auto-unassign logic | Not Started | Requires movement workflows first. |
 
-**Phase Dependencies:** Phase 2 must be complete; can run in parallel with Phase 3
+**Exit Criteria**
 
-| Order | Req ID | Description | Assignee | Status | Target Date | Notes |
-|-------|--------|-------------|----------|--------|-------------|-------|
-| 4.1 | REQ-SHP-02 | Request import - load shipment requests from CSV/Excel | | Not Started | | Entry point for shipment workflow |
-| 4.2 | REQ-SHP-03 | Availability check - match requests against inventory | | Not Started | | Depends on 4.1 and search (2.4) |
-| 4.3 | REQ-SHP-06 | Status workflow - track sample through shipment stages | | Not Started | | Depends on 4.2 |
-| 4.4 | REQ-SHP-01 | Request approval - ED/Regulatory approval workflow | | Not Started | | Depends on 4.1 and roles (1.1) |
-| 4.5 | REQ-SHP-04 | Availability report generation | | Not Started | | Depends on 4.2 |
-| 4.6 | REQ-SHP-05 | Report distribution to stakeholders | | Not Started | | Depends on 4.5 |
-| 4.7 | REQ-SHP-07 | Shipping container configuration | | Not Started | | Depends on 4.3 |
-| 4.8 | REQ-SHP-08 | Ship entire box | | Not Started | | Depends on 4.7 and box relocation (3.2) |
-| 4.9 | REQ-RPT-04 | Shipping manifest generation (PDF/Excel) | | Not Started | | Depends on 4.7 |
-
-**Phase 4 Completion Criteria:**
-- [ ] Shipment requests can be imported from CSV/Excel
-- [ ] System matches requests against inventory and identifies availability
-- [ ] Sample status tracks through: In Inventory → Staged → Shipped
-- [ ] Shipment requests require ED/Regulatory approval before processing
-- [ ] Availability reports are generated showing available/missing/shipped/discarded
-- [ ] Reports can be distributed to Regulatory, Requestor, and PIs
-- [ ] Shipping box configuration (positions) can be recorded
-- [ ] Entire boxes can be shipped as a unit
-- [ ] Shipping manifests can be generated as PDF or Excel
+- [ ] Lab setup screens can create and maintain storage locations
+- [ ] Users can view a box and its contents
+- [ ] Users can move one specimen or a whole box safely
+- [ ] Temp holding and re-boxing workflows work end to end
 
 ---
 
-## Phase 5: Special Handling Rules
+## Phase 4: Shipment Workflow
 
-**Phase Goal:** Implement business rules specific to Filter Paper and Plasma sample types.
+**Goal:** Build the end-to-end outbound shipment process defined in the requirements.
 
-**Estimated Duration:** _____ weeks
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 4.1 | REQ-SHP-02 | Import shipment requests | Not Started | Start with CSV import into `ShipmentRequest` records. |
+| 4.2 | REQ-SHP-03 | Match requests against inventory | Not Started | Reuse specimen search logic and add shipment-specific status resolution. |
+| 4.3 | REQ-SHP-04 | Generate availability report | Not Started | First deliver as on-screen/exportable table. |
+| 4.4 | REQ-SHP-05 | Distribute availability report | Not Started | Email integration exists in principle, but workflow wiring does not. |
+| 4.5 | REQ-SHP-01 | Approval workflow for shipment requests | Not Started | Current code has no approval engine despite schema references. |
+| 4.6 | REQ-SHP-06 | Track staged/shipped/request statuses | Not Started | Shipment pages are placeholders. |
+| 4.7 | REQ-SHP-07 | Record shipping container positions | Not Started | Needs shipment content UI and model alignment. |
+| 4.8 | REQ-SHP-08 | Ship an entire box | Not Started | Depends on box location and shipment workflows. |
+| 4.9 | REQ-RPT-04 | Generate shipment manifest | Not Started | Start with CSV export before PDF. |
 
-**Phase Dependencies:** Phase 2 for Filter Paper basics; Phase 4 for shipping restrictions
+**Exit Criteria**
 
-| Order | Req ID | Description | Assignee | Status | Target Date | Notes |
-|-------|--------|-------------|----------|--------|-------------|-------|
-| 5.1 | REQ-SPL-01 | Filter Paper usage tracking | | Not Started | | Extends specimen data model |
-| 5.2 | REQ-SPL-02 | Filter Paper 4-spot tracking across requests | | Not Started | | Depends on 5.1 |
-| 5.3 | REQ-SPL-03 | Filter Paper depletion logic | | Not Started | | Depends on 5.2 |
-| 5.4 | REQ-SPL-04 | Filter Paper shipping restriction (2 international / 2 local) | | Not Started | | Depends on 5.2 and Phase 4 |
-| 5.5 | REQ-SPL-05 | Plasma shipping restriction (Plasma-1 only) | | Not Started | | Depends on Phase 4 |
-| 5.6 | REQ-SPL-06 | Single aliquot exception approval workflow | | Not Started | | Depends on 5.5 and approval workflow (4.4) |
-
-**Phase 5 Completion Criteria:**
-- [ ] Filter Paper samples track remaining spots (0-4)
-- [ ] Usage is recorded per request/cohort
-- [ ] Filter Papers auto-mark as depleted when all spots used
-- [ ] System enforces max 2 spots for international shipment
-- [ ] System enforces only Plasma-1 can be shipped
-- [ ] Single-aliquot plasma requires and records ED/Regulatory approval
+- [ ] A shipment request can be imported and matched
+- [ ] Availability can be reviewed before shipping
+- [ ] Shipment approval and status tracking work
+- [ ] Users can create and export a shipment manifest
 
 ---
 
-## Phase 6: Non-Functional & Polish
+## Phase 5: Discard and Approval Workflows
 
-**Phase Goal:** Optimize performance, usability, and infrastructure.
+**Goal:** Implement governance-heavy operations separately from basic movement so they are testable and auditable.
 
-**Estimated Duration:** _____ weeks
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 5.1 | REQ-MOV-07 | Sample discard workflow | Not Started | Current codebase has no discard UI or approval logic. |
+| 5.2 | REQ-MOV-07 | ED, Regulatory, and PI approval capture | Not Started | The existing SQL script references approval tables not present in EF models. Resolve schema first. |
+| 5.3 | REQ-RPT-03 | Audit logging for discard and shipment approvals | Not Started | This should not ship without real audit capture. |
 
-**Phase Dependencies:** Various - see individual items
+**Exit Criteria**
 
-| Order | Req ID | Description | Assignee | Status | Target Date | Notes |
-|-------|--------|-------------|----------|--------|-------------|-------|
-| 6.1 | NFR-USE-01 | Barcode scanner optimization (auto-focus) | | Not Started | | After core UI exists (Phases 2-3) |
-| 6.2 | NFR-USE-02 | Visual indicators / color coding for box view | | Not Started | | After sample placement (2.2) |
-| 6.3 | NFR-PER-01 | Bulk import performance (1000+ in 30 sec) | | Not Started | | After bulk import works (2.6) |
-| 6.4 | NFR-PER-02 | Search performance (< 2 seconds) | | Not Started | | After search works (2.4) |
-| 6.5 | NFR-SYS-02 | Daily backup configuration | | Not Started | | Once database structure is stable |
-
-**Phase 6 Completion Criteria:**
-- [ ] Cursor auto-focuses to barcode input fields
-- [ ] Box view shows color-coded occupied vs empty positions
-- [ ] Bulk import of 1000+ records completes in under 30 seconds
-- [ ] Barcode search returns results in under 2 seconds
-- [ ] Automated daily backups are configured and verified
+- [ ] Samples can be routed into a discard workflow without immediate deletion
+- [ ] Required approvers can record decisions
+- [ ] Approval history is auditable
 
 ---
 
-## Team Assignments
+## Phase 6: Special Sample Rules
 
-| Team Member | Role | Assigned Phases/Items |
-|-------------|------|----------------------|
-| | | |
-| | | |
-| | | |
-| | | |
+**Goal:** Implement the domain rules that distinguish STASIS from a generic inventory system.
 
----
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 6.1 | REQ-SPL-01 | Track remaining filter paper spots | In Progress | `RemainingSpots` exists, but usage events do not. |
+| 6.2 | REQ-SPL-02 | Record up to 4 filter paper usages over time | Not Started | Needs a usage history table, not just a counter. |
+| 6.3 | REQ-SPL-03 | Deplete filter paper correctly when fully used or shipped | Not Started | Must integrate with shipments. |
+| 6.4 | REQ-SPL-04 | Enforce international/local filter paper limits | Not Started | Business rule layer required. |
+| 6.5 | REQ-SPL-05 | Enforce Plasma-1 shipping restriction | In Progress | `AliquotNumber` exists in SQL script, but not in current `Specimen` model. Resolve schema/model mismatch first. |
+| 6.6 | REQ-SPL-06 | Support single-aliquot exception approval | Not Started | Depends on approval engine in Phase 5. |
 
-## Parallelization Opportunities
+**Exit Criteria**
 
-The following work streams can proceed in parallel once their dependencies are met:
-
-| Stream | Items | Can Start After |
-|--------|-------|-----------------|
-| Stream A: Data/Backend | Phase 1 → Phase 5 | Immediately |
-| Stream B: Core Sample Ops | Phase 2 → Phase 3 | Phase 1 complete |
-| Stream C: Shipment Workflow | Phase 4 | Phase 2 complete |
-| Stream D: UI/UX Polish | Phase 6 | Relevant features complete |
+- [ ] Filter paper usage is tracked historically
+- [ ] Filter paper and plasma shipping restrictions are enforced in code
+- [ ] Exceptions require approval and are auditable
 
 ---
 
-## Risk Register
+## Phase 7: Non-Functional Work and Production Readiness
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| Phase 1 delays cascade to all other phases | High | Medium | Prioritize Phase 1; consider additional resources |
-| Bulk import performance issues | Medium | Medium | Design for performance from start; test with realistic data volumes |
-| Approval workflow complexity | Medium | Low | Clarify business rules with ED/Regulatory early |
-| | | | |
+**Goal:** Make the system usable in production, not just functionally complete.
+
+| Order | Req ID | Description | Status | Notes |
+|-------|--------|-------------|--------|-------|
+| 7.1 | NFR-USE-01 | Barcode-scanner-friendly forms and focus handling | Not Started | Add to all operational entry pages. |
+| 7.2 | NFR-USE-02 | Color-coded box occupancy view | Not Started | Best added once box search/details exist. |
+| 7.3 | NFR-PER-01 | Bulk import performance validation | Not Started | Measure with realistic files after import exists. |
+| 7.4 | NFR-PER-02 | Search performance tuning | In Progress | Sample search exists, but not benchmarked or indexed deliberately. |
+| 7.5 | NFR-SYS-02 | Backup and restore procedures | Not Started | Required before production cutover. |
+| 7.6 | N/A | Automated test project for services and page models | Not Started | No tests currently exist. |
+| 7.7 | N/A | Deployment checklist for IIS + PostgreSQL | Not Started | Needed for production consistency. |
+
+**Exit Criteria**
+
+- [ ] Daily operational flows are fast enough for real users
+- [ ] Backup/restore is documented and tested
+- [ ] Critical workflows have automated test coverage
+- [ ] Production deployment is repeatable
+
+---
+
+## Recommended Immediate Development Order
+
+This is the practical order to start coding from the current state.
+
+1. Complete Phase 0. The schema/model mismatch will slow every later feature if left unresolved.
+2. Finish Phase 1 authorization and audit groundwork.
+3. Build `Samples/Add` and specimen placement.
+4. Build `Samples/Import` with CSV support only.
+5. Build `Boxes/Search` and `Boxes/Move`.
+6. Build lab setup pages for freezers, racks, and box assignment.
+7. Build shipment import and availability checking.
+8. Add discard approvals and special sample rules last.
+
+---
+
+## File-to-Feature Map
+
+Use this as the starting point when implementing each phase.
+
+| Area | Primary Files |
+|------|---------------|
+| App startup/auth | `Program.cs`, `Services/PasswordChangeFilter.cs`, `Areas/Identity/*` |
+| Sample search/list | `Pages/Samples.cshtml`, `Pages/Samples.cshtml.cs`, `STASIS/Services/SampleService.cs` |
+| User admin | `Pages/Administration/CreateUser*`, `Pages/Administration/EditUser*`, `Pages/Administration/Users*` |
+| Storage services | `STASIS/Services/StorageService.cs`, `STASIS/Services/IStorageService.cs` |
+| Data model | `STASIS/Data/StasisDbContext.cs`, `STASIS/Models/*` |
+| Placeholder feature pages | `Pages/Samples/Add*`, `Pages/Samples/Import*`, `Pages/Boxes/*`, `Pages/Shipments/*`, `Pages/LabSetup/*`, `Pages/Administration/Audit*` |
+| Database bootstrap | `STASIS/STASIS_create_tables_postgres.sql` |
+
+---
+
+## Risks and Decisions to Resolve Early
+
+| Risk / Decision | Why It Matters | Mitigation |
+|-----------------|----------------|------------|
+| SQL schema and EF models are out of sync | New features will be built on inconsistent assumptions | Make EF migrations the source of truth in Phase 0 |
+| Shipment/approval concepts exist in SQL but not in model behavior | High risk of rework | Finalize the approval domain model before shipment UI work |
+| No audit logging is active | Compliance-sensitive changes could be lost | Add audit capture before movement, discard, and shipment workflows |
+| Many pages are shells only | Navigation can hide true progress | Track implementation status by handler, not by page existence |
+| No automated tests | Regression risk will rise quickly | Add a test project before or during Phase 4 |
 
 ---
 
@@ -240,5 +275,5 @@ The following work streams can proceed in parallel once their dependencies are m
 
 | Date | Version | Author | Changes |
 |------|---------|--------|---------|
-| | 1.0 | | Initial draft |
-| | | | |
+| December 2024 | 1.0 | | Initial draft |
+| March 2, 2026 | 2.0 | Codex | Replaced generic draft with codebase-aware implementation roadmap and current status |
