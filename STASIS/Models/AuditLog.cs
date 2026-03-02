@@ -8,9 +8,9 @@ public class AuditLog
 {
     [Key]
     public int AuditLogID { get; set; }
-    public string? TableName { get; set; }
-    public int? RecordID { get; set; }
-    public string? FieldName { get; set; }
+    public string TableName { get; set; } = string.Empty;
+    public int RecordID { get; set; }
+    public string FieldName { get; set; } = string.Empty;
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     

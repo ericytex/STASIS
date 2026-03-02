@@ -21,20 +21,35 @@ dotnet --info
 psql --version
 ```
 
-### 2. Create the PostgreSQL database
+### 2. Create the PostgreSQL database and bootstrap tables
 
-Create a local database and confirm that it exists:
+Create the application login if you have not already done so:
 
 ```bash
-createdb stasis
+psql postgres
+CREATE ROLE stasis_app WITH LOGIN PASSWORD 'YOUR_POSTGRES_PASSWORD';
+\q
+```
+
+Create the local database:
+
+```bash
+createdb -O stasis_app stasis
+```
+
+Confirm that it exists:
+
+```bash
 psql -lqt | grep stasis
 ```
 
-Load the PostgreSQL bootstrap script:
+Run the STASIS PostgreSQL bootstrap script from the repository root:
 
 ```bash
 psql -U stasis_app -d stasis -f STASIS/STASIS_create_tables_postgres.sql
 ```
+
+The bootstrap script drops and recreates the STASIS tables inside the `stasis` database, so you can rerun it during early development without dropping the database itself.
 
 Longer term, prefer EF Core migrations over a hand-maintained SQL script.
 

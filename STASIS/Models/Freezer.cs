@@ -6,4 +6,5 @@ public class Freezer
     public string FreezerName { get; set; } = string.Empty;
     public int? Temperature { get; set; }
     public string? LocationInBuilding { get; set; }
+    public ICollection<Rack> Racks { get; set; } = new List<Rack>();
 }
