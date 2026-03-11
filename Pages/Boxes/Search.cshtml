@@ -6,4 +6,144 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will contain functionality to search for boxes and view their contents.</p>
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <input asp-for="BoxLabel" class="form-control" placeholder="Box label" />
+    </div>
+    <div class="col-md-3">
+        <select asp-for="FreezerId" asp-items="Model.FreezerOptions" class="form-select">
+            <option value="">All freezers</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-page="./Search" class="btn btn-secondary">Clear</a>
+    </div>
+</form>
+
+@if (Model.Boxes.Any())
+{
+    <table class="table table-bordered table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Freezer</th>
+                <th>Rack</th>
+                <th>Specimens</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var box in Model.Boxes)
+            {
+                <tr class="@(box.BoxID == Model.SelectedBoxId ? "table-active" : "")">
+                    <td>@box.BoxLabel</td>
+                    <td>@box.BoxType</td>
+                    <td>@box.BoxCategory</td>
+                    <td>@(box.Rack?.Freezer?.FreezerName ?? "-")</td>
+                    <td>@(box.Rack?.RackName ?? "-")</td>
+                    <td>@box.Specimens.Count</td>
+                    <td>
+                        <a asp-page="./Search"
+                           asp-route-boxLabel="@Model.BoxLabel"
+                           asp-route-freezerId="@Model.FreezerId"
+                           asp-route-selectedBoxId="@box.BoxID"
+                           class="btn btn-sm btn-outline-primary">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (Model.SelectedBox != null)
+{
+    var box = Model.SelectedBox;
+    var gridSize = Model.GetGridSize(box);
+    var specimenMap = box.Specimens
+        .Where(s => s.PositionRow.HasValue && s.PositionCol.HasValue)
+        .ToDictionary(s => (s.PositionRow!.Value, s.PositionCol!.Value));
+
+    <hr />
+    <h4>@box.BoxLabel <small class="text-muted">(@box.BoxType, @box.BoxCategory)</small></h4>
+    <p>
+        Location: @(box.Rack?.Freezer?.FreezerName ?? "Unassigned") &gt; @(box.Rack?.RackName ?? "Unassigned")
+        | Occupied: @box.Specimens.Count / @(gridSize * gridSize)
+    </p>
+
+    <div class="mb-2">
+        <span class="badge bg-success">&nbsp;</span> Occupied
+        <span class="badge bg-secondary">&nbsp;</span> Empty
+        <span class="badge bg-warning">&nbsp;</span> Staged
+        <span class="badge bg-info">&nbsp;</span> Temp
+    </div>
+
+    <table class="table table-bordered" style="table-layout:fixed; max-width:@(gridSize * 50)px;">
+        <thead>
+            <tr>
+                <th style="width:30px;"></th>
+                @for (int c = 1; c <= gridSize; c++)
+                {
+                    <th class="text-center" style="width:40px;">@c</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @for (int r = 1; r <= gridSize; r++)
+            {
+                <tr>
+                    <td class="text-center fw-bold">@r</td>
+                    @for (int c = 1; c <= gridSize; c++)
+                    {
+                        var key = (r, c);
+                        if (specimenMap.TryGetValue(key, out var specimen))
+                        {
+                            var bgClass = specimen.Status switch
+                            {
+                                "Staged" => "bg-warning text-dark",
+                                "Temp" => "bg-info text-dark",
+                                _ => "bg-success text-white"
+                            };
+                            <td class="text-center small @bgClass" title="@specimen.BarcodeID (@specimen.SampleType?.TypeName) — @specimen.Status"
+                                style="cursor:pointer; font-size:0.7em; padding:2px;">
+                                @specimen.BarcodeID[^(Math.Min(6, specimen.BarcodeID.Length))..]
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="text-center bg-light text-muted" style="font-size:0.7em; padding:2px;">—</td>
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (box.Specimens.Any())
+    {
+        <h5>Specimens in this box</h5>
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Barcode</th>
+                    <th>Type</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in box.Specimens.OrderBy(s => s.PositionRow).ThenBy(s => s.PositionCol))
+                {
+                    <tr>
+                        <td>@s.BarcodeID</td>
+                        <td>@(s.SampleType?.TypeName ?? "-")</td>
+                        <td>@(s.PositionRow.HasValue ? $"({s.PositionRow},{s.PositionCol})" : "-")</td>
+                        <td>@s.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

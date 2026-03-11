@@ -6,4 +6,83 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will be used for moving a single sample from one box to another.</p>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+<form method="get" class="row g-2 mb-4" style="max-width:500px;">
+    <div class="col-md-8">
+        <input asp-for="Barcode" class="form-control" placeholder="Scan or enter barcode" autofocus />
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">Look Up</button>
+    </div>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.Barcode) && Model.FoundSpecimen == null)
+{
+    <div class="alert alert-warning">Specimen with barcode "@Model.Barcode" not found.</div>
+}
+
+@if (Model.FoundSpecimen != null)
+{
+    var s = Model.FoundSpecimen;
+    <div class="card mb-4" style="max-width:600px;">
+        <div class="card-body">
+            <h5 class="card-title">@s.BarcodeID</h5>
+            <p>
+                <strong>Type:</strong> @(s.SampleType?.TypeName ?? "-") |
+                <strong>Status:</strong> @s.Status
+            </p>
+            <p>
+                <strong>Current Location:</strong>
+                @if (s.Box != null)
+                {
+                    <span>@(s.Box.Rack?.Freezer?.FreezerName ?? "?") &gt; @(s.Box.Rack?.RackName ?? "?") &gt; @s.Box.BoxLabel</span>
+                    if (s.PositionRow.HasValue)
+                    {
+                        <span> — Position (@s.PositionRow, @s.PositionCol)</span>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">Not in a box</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <h5>Move To</h5>
+    <form method="post" asp-page-handler="Move" style="max-width:600px;">
+        <input type="hidden" asp-for="SpecimenId" value="@s.SpecimenID" />
+        <input type="hidden" asp-for="Barcode" />
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-12">
+                <label class="form-label">Destination Box</label>
+                <select asp-for="NewBoxId" asp-items="Model.BoxOptions" class="form-select">
+                    <option value="">— Select box —</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Row</label>
+                <input asp-for="NewRow" class="form-control" type="number" min="1" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Column</label>
+                <input asp-for="NewCol" class="form-control" type="number" min="1" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Move Specimen</button>
+
+        <hr class="my-3" />
+
+        <div class="form-check mb-2">
+            <input asp-for="MoveToTemp" class="form-check-input" type="checkbox" id="moveToTempCheck" />
+            <label class="form-check-label" for="moveToTempCheck">Move to Temp instead</label>
+        </div>
+    </form>
+}

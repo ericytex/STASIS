@@ -1,9 +1,104 @@
 @page
 @model STASIS.Pages.Boxes.PlaceModel
 @{
-    ViewData["Title"] = "Place a Sample";
+    ViewData["Title"] = "Place / Move a Box";
 }
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will provide an interface for placing a sample into a specific position in a box.</p>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+<form method="get" class="row g-2 mb-4" style="max-width:500px;">
+    <div class="col-md-8">
+        <input asp-for="BoxLabel" class="form-control" placeholder="Enter box label" autofocus />
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">Look Up</button>
+    </div>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.BoxLabel) && Model.FoundBox == null)
+{
+    <div class="alert alert-warning">Box "@Model.BoxLabel" not found.</div>
+}
+
+@if (Model.FoundBox != null)
+{
+    var box = Model.FoundBox;
+    <div class="card mb-4" style="max-width:600px;">
+        <div class="card-body">
+            <h5 class="card-title">@box.BoxLabel</h5>
+            <p>
+                <strong>Type:</strong> @box.BoxType |
+                <strong>Category:</strong> @box.BoxCategory |
+                <strong>Specimens:</strong> @box.Specimens.Count
+            </p>
+            <p>
+                <strong>Current Location:</strong>
+                @if (box.Rack != null)
+                {
+                    <span>@(box.Rack.Freezer?.FreezerName ?? "?") &gt; @box.Rack.RackName</span>
+                }
+                else
+                {
+                    <span class="text-muted">Unassigned</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <h5>Move to New Rack</h5>
+    <form method="post" class="row g-2" style="max-width:600px;">
+        <input type="hidden" asp-for="BoxId" value="@box.BoxID" />
+        <input type="hidden" asp-for="BoxLabel" />
+        <div class="col-md-5">
+            <label class="form-label">Freezer</label>
+            <select id="freezerSelect" class="form-select">
+                <option value="">— Select —</option>
+                @foreach (var item in Model.FreezerOptions)
+                {
+                    <option value="@item.Value">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label">Rack</label>
+            <select asp-for="NewRackId" id="rackSelect" class="form-select">
+                <option value="">— Select freezer first —</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Move</button>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        var freezerSelect = document.getElementById('freezerSelect');
+        var rackSelect = document.getElementById('rackSelect');
+        if (freezerSelect) {
+            freezerSelect.addEventListener('change', async function () {
+                rackSelect.innerHTML = '<option value="">Loading...</option>';
+                if (!this.value) {
+                    rackSelect.innerHTML = '<option value="">— Select freezer first —</option>';
+                    return;
+                }
+                var resp = await fetch('?handler=Racks&freezerId=' + this.value);
+                var racks = await resp.json();
+                rackSelect.innerHTML = '<option value="">— Select —</option>';
+                racks.forEach(function (r) {
+                    var opt = document.createElement('option');
+                    opt.value = r.rackID;
+                    opt.textContent = r.rackName;
+                    rackSelect.appendChild(opt);
+                });
+            });
+        }
+    </script>
+}

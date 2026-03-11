@@ -123,21 +123,21 @@ This plan translates the requirements in `system_requirements.md` into a practic
 
 | Order | Req ID | Description | Status | Notes |
 |-------|--------|-------------|--------|-------|
-| 3.1 | REQ-INV-02 | Manage freezers, racks, box types, and box assignments | In Progress | Freezers and Racks CRUD complete (Phase 1). Box assignment UI not yet implemented. |
-| 3.2 | REQ-RPT-02 | Search boxes and display contents/location | Not Started | `Pages/Boxes/Search.cshtml.cs` is a placeholder. |
-| 3.3 | REQ-MOV-01 | Move an individual sample between boxes | Not Started | `Pages/Boxes/Move.cshtml.cs` is a placeholder. |
-| 3.4 | REQ-MOV-03 | Move an entire box to another rack/freezer | Not Started | Likely belongs in box search/details workflow. |
-| 3.5 | REQ-MOV-02 | Re-box a full set of specimens by scan/update | Not Started | `Pages/Boxes/Rebox.cshtml.cs` is a placeholder. |
-| 3.6 | REQ-MOV-05 | Add specimens into partially populated boxes | Not Started | Should reuse the same slot-allocation rules as intake. |
-| 3.7 | REQ-MOV-06 | Move specimens to Temp | Not Started | PostgreSQL seed data includes `SYSTEM-TEMP`; behavior is not implemented. |
-| 3.8 | REQ-MOV-04 | Empty box auto-unassign logic | Not Started | Requires movement workflows first. |
+| 3.1 | REQ-INV-02 | Manage freezers, racks, box types, and box assignments | Complete | Freezers and Racks CRUD (Phase 1). Box placement via Place page. |
+| 3.2 | REQ-RPT-02 | Search boxes and display contents/location | Complete | `Boxes/Search` with label/freezer filters, color-coded occupancy grid, specimen list. |
+| 3.3 | REQ-MOV-01 | Move an individual sample between boxes | Complete | `Boxes/Move` — barcode lookup, destination box/position selector, conflict detection. |
+| 3.4 | REQ-MOV-03 | Move an entire box to another rack/freezer | Complete | `Boxes/Place` — box lookup, cascading freezer→rack selector. |
+| 3.5 | REQ-MOV-02 | Re-box a full set of specimens by scan/update | Complete | `Boxes/Rebox` — barcode scanning session, auto-incrementing positions, bulk commit. |
+| 3.6 | REQ-MOV-05 | Add specimens into partially populated boxes | Complete | Move and Rebox pages support placing into any available position in an existing box. |
+| 3.7 | REQ-MOV-06 | Move specimens to Temp | Complete | "Move to Temp" checkbox on Move page; sets Status="Temp", clears position, assigns to Temp-category box. |
+| 3.8 | REQ-MOV-04 | Empty box auto-unassign logic | Complete | `CheckAndUnassignEmptyBoxAsync` runs after every move/rebox; clears RackID on Standard boxes with 0 specimens. |
 
 **Exit Criteria**
 
-- [ ] Lab setup screens can create and maintain storage locations
-- [ ] Users can view a box and its contents
-- [ ] Users can move one specimen or a whole box safely
-- [ ] Temp holding and re-boxing workflows work end to end
+- [x] Lab setup screens can create and maintain storage locations
+- [x] Users can view a box and its contents
+- [x] Users can move one specimen or a whole box safely
+- [x] Temp holding and re-boxing workflows work end to end
 
 ---
 
@@ -280,3 +280,4 @@ Use this as the starting point when implementing each phase.
 | March 3, 2026 | 2.1 | Claude | Completed Phase 0: confirmed schema/model alignment, generated EF migrations, moved admin seed password to configuration, added smoke test checklist to README |
 | March 11, 2026 | 2.2 | Claude | Completed Phase 1: explicit page-level authorization on all pages; IAuditService/AuditService; Administration/Audit page with filtering and pagination; LabSetup Freezers and Racks with full CRUD; BoxTypes reference page |
 | March 11, 2026 | 2.3 | Claude | Completed Phase 2: Samples/Add with full form, barcode uniqueness, position conflict detection, Plasma/Filter Paper conditional fields; Samples/Import with CSV upload, preview/error report, and commit; LabSetup/Studies CRUD page; extended ISampleService with IsBarcodeTaken, GetOccupiedPositions, ImportSpecimensFromCsv |
+| March 11, 2026 | 2.4 | Claude | Completed Phase 3: Boxes/Search with color-coded occupancy grid; Boxes/Move with barcode lookup, Move-to-Temp; Boxes/Place with cascading freezer→rack; Boxes/Rebox with barcode scanning session; StorageService extended with SearchBoxes, MoveSpecimen, MoveBox, Rebox, MoveToTemp, empty-box auto-unassign |

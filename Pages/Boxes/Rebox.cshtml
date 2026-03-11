@@ -6,4 +6,141 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will provide a special interface for scanning all samples in a physical box to rapidly update its contents in the system.</p>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+<div class="row">
+    <div class="col-md-5">
+        <h5>1. Select Destination Box</h5>
+        <select asp-for="DestinationBoxId" asp-items="Model.BoxOptions" class="form-select mb-3" id="destBox">
+            <option value="">— Select destination box —</option>
+        </select>
+
+        <h5>2. Scan Specimens</h5>
+        <div class="input-group mb-3">
+            <input type="text" id="scanInput" class="form-control" placeholder="Scan barcode" autofocus />
+            <button type="button" id="addBtn" class="btn btn-primary">Add</button>
+        </div>
+        <div id="scanStatus" class="mb-3"></div>
+    </div>
+
+    <div class="col-md-7">
+        <h5>3. Scanned Specimens <span class="badge bg-secondary" id="countBadge">0</span></h5>
+        <table class="table table-sm table-bordered" id="scannedTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Barcode</th>
+                    <th>Type</th>
+                    <th>From</th>
+                    <th>Row</th>
+                    <th>Col</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <form method="post" asp-page-handler="Commit" id="commitForm">
+            <input type="hidden" asp-for="DestinationBoxId" id="hiddenDestBox" />
+            <input type="hidden" asp-for="ScannedListJson" id="hiddenJson" />
+            <button type="submit" class="btn btn-success" id="commitBtn" disabled>Commit Re-box</button>
+            <a asp-page="/Boxes/Search" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var scanned = [];
+        var nextRow = 1, nextCol = 1;
+        var scanInput = document.getElementById('scanInput');
+        var addBtn = document.getElementById('addBtn');
+        var scanStatus = document.getElementById('scanStatus');
+        var tbody = document.querySelector('#scannedTable tbody');
+        var countBadge = document.getElementById('countBadge');
+        var commitBtn = document.getElementById('commitBtn');
+
+        function getGridSize() {
+            // Default to row-major fill; grid size determined by box type later
+            return 9;
+        }
+
+        function advancePosition() {
+            var gridSize = getGridSize();
+            nextCol++;
+            if (nextCol > gridSize) {
+                nextCol = 1;
+                nextRow++;
+            }
+        }
+
+        function updateJson() {
+            document.getElementById('hiddenJson').value = JSON.stringify(scanned);
+            document.getElementById('hiddenDestBox').value = document.getElementById('destBox').value;
+            countBadge.textContent = scanned.length;
+            commitBtn.disabled = scanned.length === 0;
+        }
+
+        function renderTable() {
+            tbody.innerHTML = '';
+            scanned.forEach(function (item, idx) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + item.BarcodeId + '</td><td>' + (item.SampleType || '-') + '</td><td>' +
+                    (item.CurrentBox || '-') + '</td>' +
+                    '<td><input type="number" min="1" value="' + item.Row + '" class="form-control form-control-sm" style="width:60px" onchange="scanned[' + idx + '].Row=+this.value;updateJson()"></td>' +
+                    '<td><input type="number" min="1" value="' + item.Col + '" class="form-control form-control-sm" style="width:60px" onchange="scanned[' + idx + '].Col=+this.value;updateJson()"></td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="scanned.splice(' + idx + ',1);renderTable();updateJson();">X</button></td>';
+                tbody.appendChild(tr);
+            });
+            updateJson();
+        }
+
+        async function addSpecimen() {
+            var barcode = scanInput.value.trim();
+            if (!barcode) return;
+
+            if (scanned.some(function (s) { return s.BarcodeId === barcode; })) {
+                scanStatus.innerHTML = '<span class="text-warning">Already scanned.</span>';
+                scanInput.value = '';
+                scanInput.focus();
+                return;
+            }
+
+            var resp = await fetch('?handler=Lookup&barcode=' + encodeURIComponent(barcode));
+            var data = await resp.json();
+            if (!data.found) {
+                scanStatus.innerHTML = '<span class="text-danger">Not found: ' + barcode + '</span>';
+                scanInput.value = '';
+                scanInput.focus();
+                return;
+            }
+
+            scanned.push({
+                SpecimenId: data.specimenId,
+                BarcodeId: data.barcodeId,
+                SampleType: data.sampleType,
+                CurrentBox: data.currentBox,
+                Row: nextRow,
+                Col: nextCol
+            });
+            advancePosition();
+            scanStatus.innerHTML = '<span class="text-success">Added: ' + data.barcodeId + '</span>';
+            scanInput.value = '';
+            scanInput.focus();
+            renderTable();
+        }
+
+        addBtn.addEventListener('click', addSpecimen);
+        scanInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); addSpecimen(); }
+        });
+
+        document.getElementById('commitForm').addEventListener('submit', function () {
+            updateJson();
+        });
+    </script>
+}
