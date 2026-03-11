@@ -147,22 +147,22 @@ This plan translates the requirements in `system_requirements.md` into a practic
 
 | Order | Req ID | Description | Status | Notes |
 |-------|--------|-------------|--------|-------|
-| 4.1 | REQ-SHP-02 | Import shipment requests | Not Started | Start with CSV import into `ShipmentRequest` records. |
-| 4.2 | REQ-SHP-03 | Match requests against inventory | Not Started | Reuse specimen search logic and add shipment-specific status resolution. |
-| 4.3 | REQ-SHP-04 | Generate availability report | Not Started | First deliver as on-screen/exportable table. |
-| 4.4 | REQ-SHP-05 | Distribute availability report | Not Started | Email integration exists in principle, but workflow wiring does not. |
-| 4.5 | REQ-SHP-01 | Approval workflow for shipment requests | Not Started | Current code has no approval engine despite schema references. |
-| 4.6 | REQ-SHP-06 | Track staged/shipped/request statuses | Not Started | Shipment pages are placeholders. |
-| 4.7 | REQ-SHP-07 | Record shipping container positions | Not Started | Needs shipment content UI and model alignment. |
-| 4.8 | REQ-SHP-08 | Ship an entire box | Not Started | Depends on box location and shipment workflows. |
-| 4.9 | REQ-RPT-04 | Generate shipment manifest | Not Started | Start with CSV export before PDF. |
+| 4.1 | REQ-SHP-02 | Import shipment requests | Complete | `Shipments/Create` with CSV upload, requestor name/email fields. `ShipmentService.ImportBatchFromCsvAsync` creates batch + requests. |
+| 4.2 | REQ-SHP-03 | Match requests against inventory | Complete | Auto-matching on import — resolves specimen by barcode, classifies as Available/Not Found/Previously Shipped/Discarded/Not Yet Received. |
+| 4.3 | REQ-SHP-04 | Generate availability report | Complete | Availability summary shown immediately after import on Create page, and on batch detail in History. |
+| 4.4 | REQ-SHP-05 | Distribute availability report | In Progress | On-screen report complete. Email distribution wiring deferred — EmailSender service exists but not connected to shipment workflow. |
+| 4.5 | REQ-SHP-01 | Approval workflow for shipment requests | Complete | 3-level approval (ED, Regulatory, PI) via batch detail page. Overall status computed automatically (Approved when ED+Regulatory approved, Rejected if any rejected). |
+| 4.6 | REQ-SHP-06 | Track staged/shipped/request statuses | Complete | Request status transitions: Pending→Shipped. Batch status: Pending Approval→Approved→Shipped. Specimen status set to "Shipped" on ship. |
+| 4.7 | REQ-SHP-07 | Record shipping container positions | Complete | `ShipmentContent` records created per specimen with ConditionAtShipment and ShippingBoxPosition fields. |
+| 4.8 | REQ-SHP-08 | Ship an entire box | In Progress | `Shipment.IsEntireBox`/`ShippedBoxID` model fields exist; UI for whole-box shipping deferred to refinement. |
+| 4.9 | REQ-RPT-04 | Generate shipment manifest | Complete | CSV manifest download via `History?handler=Manifest&shipmentId=N`. Includes barcode, sample type, condition, position, spots used. |
 
 **Exit Criteria**
 
-- [ ] A shipment request can be imported and matched
-- [ ] Availability can be reviewed before shipping
-- [ ] Shipment approval and status tracking work
-- [ ] Users can create and export a shipment manifest
+- [x] A shipment request can be imported and matched
+- [x] Availability can be reviewed before shipping
+- [x] Shipment approval and status tracking work
+- [x] Users can create and export a shipment manifest
 
 ---
 
@@ -281,3 +281,4 @@ Use this as the starting point when implementing each phase.
 | March 11, 2026 | 2.2 | Claude | Completed Phase 1: explicit page-level authorization on all pages; IAuditService/AuditService; Administration/Audit page with filtering and pagination; LabSetup Freezers and Racks with full CRUD; BoxTypes reference page |
 | March 11, 2026 | 2.3 | Claude | Completed Phase 2: Samples/Add with full form, barcode uniqueness, position conflict detection, Plasma/Filter Paper conditional fields; Samples/Import with CSV upload, preview/error report, and commit; LabSetup/Studies CRUD page; extended ISampleService with IsBarcodeTaken, GetOccupiedPositions, ImportSpecimensFromCsv |
 | March 11, 2026 | 2.4 | Claude | Completed Phase 3: Boxes/Search with color-coded occupancy grid; Boxes/Move with barcode lookup, Move-to-Temp; Boxes/Place with cascading freezer→rack; Boxes/Rebox with barcode scanning session; StorageService extended with SearchBoxes, MoveSpecimen, MoveBox, Rebox, MoveToTemp, empty-box auto-unassign |
+| March 11, 2026 | 2.5 | Claude | Completed Phase 4: IShipmentService/ShipmentService with CSV import, auto-matching, 3-level approval, ship action; Shipments/Create with import+availability report; Shipments/History with batch list, detail drill-down, approval UI, ship form, CSV manifest download |

@@ -1,9 +1,66 @@
 @page
 @model STASIS.Pages.Shipments.CreateModel
 @{
-    ViewData["Title"] = "Create New Shipment";
+    ViewData["Title"] = "Import Shipment Request";
 }
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will provide the workflow for creating a new shipment, from importing a request to generating a manifest.</p>
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+@if (Model.ImportedBatch == null)
+{
+    <div class="card" style="max-width:600px;">
+        <div class="card-body">
+            <h5 class="card-title">Upload Shipment Request CSV</h5>
+            <p class="text-muted small">
+                CSV columns: <code>Barcode, SampleType, RequestorName, RequestDate</code><br />
+                The first row should be a header. Each row represents one specimen request.
+            </p>
+
+            <form method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Requestor Name</label>
+                    <input asp-for="RequestorName" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Requestor Email</label>
+                    <input asp-for="RequestorEmail" class="form-control" type="email" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">CSV File</label>
+                    <input asp-for="CsvFile" class="form-control" accept=".csv" />
+                    <span asp-validation-for="CsvFile" class="text-danger small"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Import &amp; Match</button>
+                <a asp-page="/Shipments" class="btn btn-secondary ms-2">Cancel</a>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    var b = Model.ImportedBatch;
+    <div class="alert alert-success">
+        Batch #@b.BatchID imported successfully. Status: <strong>@b.Status</strong>
+    </div>
+
+    <h4>Availability Report</h4>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <table class="table table-bordered table-sm">
+                <tr><td>Total Requested</td><td class="fw-bold">@b.TotalRequested</td></tr>
+                <tr class="table-success"><td>Available</td><td>@b.TotalAvailable</td></tr>
+                <tr class="table-warning"><td>Not Found</td><td>@b.TotalNotFound</td></tr>
+                <tr class="table-secondary"><td>Previously Shipped</td><td>@b.TotalPreviouslyShipped</td></tr>
+                <tr class="table-danger"><td>Discarded</td><td>@b.TotalDiscarded</td></tr>
+                <tr class="table-info"><td>Not Yet Received</td><td>@b.TotalNotYetReceived</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <p>
+        <a asp-page="/Shipments/History" class="btn btn-outline-primary">View All Batches</a>
+        <a asp-page="/Shipments/Create" class="btn btn-outline-secondary ms-2">Import Another</a>
+    </p>
+}

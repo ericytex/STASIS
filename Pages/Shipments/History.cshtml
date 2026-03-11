@@ -6,4 +6,246 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will show a history of all past shipments.</p>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<h5>All Batches</h5>
+@if (!Model.Batches.Any())
+{
+    <p class="text-muted">No shipment batches imported yet.</p>
+}
+else
+{
+    <table class="table table-bordered table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Batch</th>
+                <th>Date</th>
+                <th>Requestor</th>
+                <th>Requested</th>
+                <th>Available</th>
+                <th>Status</th>
+                <th>Approval</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in Model.Batches)
+            {
+                <tr class="@(b.BatchID == Model.BatchId ? "table-active" : "")">
+                    <td>#@b.BatchID</td>
+                    <td>@b.ImportDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                    <td>@(b.RequestorName ?? "-")</td>
+                    <td>@b.TotalRequested</td>
+                    <td>@b.TotalAvailable</td>
+                    <td>
+                        @{
+                            var badgeClass = b.Status switch {
+                                "Approved" => "bg-success",
+                                "Rejected" => "bg-danger",
+                                "Shipped" => "bg-primary",
+                                _ => "bg-warning text-dark"
+                            };
+                        }
+                        <span class="badge @badgeClass">@b.Status</span>
+                    </td>
+                    <td>@(b.Approval?.OverallStatus ?? "-")</td>
+                    <td>
+                        <a asp-page="./History" asp-route-batchId="@b.BatchID"
+                           class="btn btn-sm btn-outline-primary">Details</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (Model.SelectedBatch != null)
+{
+    var batch = Model.SelectedBatch;
+    var approval = batch.Approval;
+
+    <hr />
+    <h4>Batch #@batch.BatchID Details</h4>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <table class="table table-sm table-bordered">
+                <tr><td>Requestor</td><td>@(batch.RequestorName ?? "-") (@(batch.RequestorEmail ?? "-"))</td></tr>
+                <tr><td>Imported</td><td>@batch.ImportDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td></tr>
+                <tr><td>Status</td><td><strong>@batch.Status</strong></td></tr>
+                <tr><td>Requested</td><td>@batch.TotalRequested</td></tr>
+                <tr class="table-success"><td>Available</td><td>@batch.TotalAvailable</td></tr>
+                <tr><td>Not Found</td><td>@batch.TotalNotFound</td></tr>
+                <tr><td>Previously Shipped</td><td>@batch.TotalPreviouslyShipped</td></tr>
+                <tr><td>Discarded</td><td>@batch.TotalDiscarded</td></tr>
+            </table>
+        </div>
+
+        @if (approval != null)
+        {
+            <div class="col-md-4">
+                <h6>Approval Status</h6>
+                <table class="table table-sm table-bordered">
+                    <tr>
+                        <td>ED</td>
+                        <td>
+                            @if (approval.EDApprovalStatus != null)
+                            {
+                                <span class="badge @(approval.EDApprovalStatus == "Approved" ? "bg-success" : "bg-danger")">@approval.EDApprovalStatus</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Pending</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Regulatory</td>
+                        <td>
+                            @if (approval.RegulatoryApprovalStatus != null)
+                            {
+                                <span class="badge @(approval.RegulatoryApprovalStatus == "Approved" ? "bg-success" : "bg-danger")">@approval.RegulatoryApprovalStatus</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Pending</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>PI</td>
+                        <td>
+                            @if (approval.PIApprovalStatus != null)
+                            {
+                                <span class="badge @(approval.PIApprovalStatus == "Approved" ? "bg-success" : "bg-danger")">@approval.PIApprovalStatus</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Pending (optional)</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr class="table-light"><td>Overall</td><td><strong>@approval.OverallStatus</strong></td></tr>
+                </table>
+            </div>
+        }
+
+        @if (approval != null && batch.Status != "Shipped" && batch.Status != "Rejected")
+        {
+            <div class="col-md-4">
+                <h6>Record Approval</h6>
+                <form method="post" asp-page-handler="Approve">
+                    <input type="hidden" asp-for="BatchId" />
+                    <div class="mb-2">
+                        <select asp-for="ApprovalLevel" class="form-select form-select-sm">
+                            <option value="">— Level —</option>
+                            <option value="ED">ED</option>
+                            <option value="Regulatory">Regulatory</option>
+                            <option value="PI">PI</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <select asp-for="ApprovalStatus" class="form-select form-select-sm">
+                            <option value="Approved">Approve</option>
+                            <option value="Rejected">Reject</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <input asp-for="ApprovalComments" class="form-control form-control-sm" placeholder="Comments" />
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+                </form>
+            </div>
+        }
+    </div>
+
+    @if (batch.Status == "Approved" && batch.TotalAvailable > 0)
+    {
+        <h5>Ship This Batch</h5>
+        <form method="post" asp-page-handler="Ship" class="row g-2 mb-4" style="max-width:700px;">
+            <input type="hidden" asp-for="BatchId" />
+            <div class="col-md-3">
+                <input asp-for="Courier" class="form-control" placeholder="Courier *" />
+            </div>
+            <div class="col-md-3">
+                <input asp-for="TrackingNumber" class="form-control" placeholder="Tracking #" />
+            </div>
+            <div class="col-md-4">
+                <input asp-for="Destination" class="form-control" placeholder="Destination" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100"
+                        onclick="return confirm('Ship @batch.TotalAvailable specimen(s)?');">Ship</button>
+            </div>
+        </form>
+    }
+
+    <h5>Requests (@batch.ShipmentRequests.Count)</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Barcode</th>
+                    <th>Type</th>
+                    <th>Matched</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in batch.ShipmentRequests.OrderBy(r => r.Status))
+                {
+                    var rowClass = r.Status switch {
+                        "Pending" => "",
+                        "Shipped" => "table-success",
+                        "Not Found" => "table-warning",
+                        "Previously Shipped" => "table-secondary",
+                        "Discarded" => "table-danger",
+                        _ => ""
+                    };
+                    <tr class="@rowClass">
+                        <td>@r.RequestedBarcode</td>
+                        <td>@(r.RequestedSampleType?.TypeName ?? r.MatchedSpecimen?.SampleType?.TypeName ?? "-")</td>
+                        <td>@(r.MatchedSpecimen != null ? r.MatchedSpecimen.BarcodeID : "-")</td>
+                        <td>@r.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (batch.Shipments.Any())
+    {
+        <h5>Shipments</h5>
+        <table class="table table-sm table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Courier</th>
+                    <th>Tracking</th>
+                    <th>Items</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in batch.Shipments)
+                {
+                    <tr>
+                        <td>#@s.ShipmentID</td>
+                        <td>@s.ShipmentDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(s.Courier ?? "-")</td>
+                        <td>@(s.TrackingNumber ?? "-")</td>
+                        <td>@s.ShipmentContents.Count</td>
+                        <td>
+                            <a asp-page="./History" asp-page-handler="Manifest" asp-route-shipmentId="@s.ShipmentID"
+                               class="btn btn-sm btn-outline-secondary">CSV Manifest</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

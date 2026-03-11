@@ -28,6 +28,7 @@ builder.Services.AddScoped<ISampleService, SampleService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ILabSetupService, LabSetupService>();
+builder.Services.AddScoped<IShipmentService, ShipmentService>();
 
 builder.Services.AddRazorPages()
     .AddMvcOptions(options =>
