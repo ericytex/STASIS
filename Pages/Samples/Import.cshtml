@@ -6,4 +6,116 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will provide an interface to upload a CSV or Excel file to register many new samples at once.</p>
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+<div class="card mb-4" style="max-width:700px;">
+    <div class="card-body">
+        <h5 class="card-title">Upload CSV File</h5>
+        <p class="text-muted small">
+            CSV columns: <code>BarcodeID, LegacyID, StudyCode, SampleType, CollectionDate, BoxLabel, PositionRow, PositionCol</code><br />
+            The first row should be a header. Dates should use <code>YYYY-MM-DD</code> format.
+        </p>
+
+        @if (Model.PreviewResult == null)
+        {
+            <form method="post" asp-page-handler="Preview" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <input asp-for="CsvFile" class="form-control" accept=".csv" />
+                    <span asp-validation-for="CsvFile" class="text-danger small"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Preview Import</button>
+                <a asp-page="/Samples" class="btn btn-secondary ms-2">Cancel</a>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.PreviewResult != null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Import Preview</h5>
+            <p>
+                Total rows: <strong>@Model.PreviewResult.TotalRows</strong> |
+                <span class="text-success">Valid: @Model.PreviewResult.SuccessRows.Count</span> |
+                <span class="text-danger">Errors: @Model.PreviewResult.ErrorRows.Count</span>
+            </p>
+
+            @if (Model.PreviewResult.ErrorRows.Count > 0)
+            {
+                <h6 class="text-danger">Rows with errors (will be skipped):</h6>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Line</th>
+                                <th>Barcode</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.PreviewResult.ErrorRows)
+                            {
+                                <tr>
+                                    <td>@row.LineNumber</td>
+                                    <td>@row.BarcodeID</td>
+                                    <td class="text-danger">@row.Error</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (Model.PreviewResult.SuccessRows.Count > 0)
+            {
+                <h6 class="text-success">Valid rows (will be imported):</h6>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Line</th>
+                                <th>Barcode</th>
+                                <th>Study</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Box</th>
+                                <th>Pos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.PreviewResult.SuccessRows)
+                            {
+                                <tr>
+                                    <td>@row.LineNumber</td>
+                                    <td>@row.BarcodeID</td>
+                                    <td>@(row.StudyCode ?? "-")</td>
+                                    <td>@(row.SampleType ?? "-")</td>
+                                    <td>@(row.CollectionDate ?? "-")</td>
+                                    <td>@(row.BoxLabel ?? "-")</td>
+                                    <td>@(row.PositionRow != null ? $"({row.PositionRow},{row.PositionCol})" : "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <form method="post" asp-page-handler="Commit" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Re-upload the same CSV to confirm import:</label>
+                        <input asp-for="CsvFile" class="form-control" accept=".csv" />
+                    </div>
+                    <button type="submit" class="btn btn-success"
+                            onclick="return confirm('Import @Model.PreviewResult.SuccessRows.Count valid row(s)?');">
+                        Confirm Import
+                    </button>
+                    <a asp-page="/Samples/Import" class="btn btn-secondary ms-2">Start Over</a>
+                </form>
+            }
+            else
+            {
+                <a asp-page="/Samples/Import" class="btn btn-secondary">Start Over</a>
+            }
+        </div>
+    </div>
+}

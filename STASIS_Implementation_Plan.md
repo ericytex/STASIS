@@ -83,14 +83,14 @@ This plan translates the requirements in `system_requirements.md` into a practic
 | 1.1 | REQ-SEC-01, REQ-SEC-02 | Role-based access control (Read, Write, Admin) | Complete | `[Authorize(Roles = "Admin")]` on Administration/* and LabSetup/*; `[Authorize(Roles = "Write,Admin")]` on all write pages. |
 | 1.2 | REQ-SEC-01 | Admin user management screens | Complete | `CreateUser`, `Users`, and `EditUser` are implemented. |
 | 1.3 | REQ-INV-01 | Freezer, rack, box, and position data model | Complete | `ILabSetupService`/`LabSetupService` implemented; Freezers and Racks pages have full CRUD with delete-guard. BoxTypes is an informational reference page. |
-| 1.4 | REQ-ACC-03, REQ-ACC-04 | Specimen data model and uniqueness | In Progress | The model supports barcode uniqueness conceptually; validation is not consistently enforced through workflows yet. |
+| 1.4 | REQ-ACC-03, REQ-ACC-04 | Specimen data model and uniqueness | Complete | Barcode uniqueness enforced via DB unique index, `IsBarcodeTaken()` service method, and client-side AJAX check in Add form. CSV import validates against DB and within-file duplicates. |
 | 1.5 | REQ-RPT-03 | Audit trail infrastructure | Complete | `IAuditService`/`AuditService` implemented; writes to `tbl_AuditLog`; used by Freezers and Racks CRUD. |
 
 **Exit Criteria**
 
 - [x] All protected pages have explicit authorization intent
 - [x] Storage hierarchy can be maintained through working UI or admin tooling
-- [ ] Barcode uniqueness is enforced through app workflows and database constraints
+- [x] Barcode uniqueness is enforced through app workflows and database constraints
 - [x] Audit logging is captured for meaningful changes
 
 ---
@@ -102,17 +102,17 @@ This plan translates the requirements in `system_requirements.md` into a practic
 | Order | Req ID | Description | Status | Notes |
 |-------|--------|-------------|--------|-------|
 | 2.1 | REQ-RPT-01 | Search/view samples by barcode, study, and sample type | Complete | `Pages/Samples.cshtml` and `SampleService` support this now. |
-| 2.2 | REQ-ACC-01 | Add individual sample registration UI and handler | Not Started | `Pages/Samples/Add.cshtml.cs` is a placeholder. |
-| 2.3 | REQ-ACC-01, REQ-INV-03 | Assign box and row/column during intake | Not Started | Must include validation and available-position checks. |
-| 2.4 | REQ-INV-04 | Prevent duplicate box-position occupancy | Not Started | Should be enforced both in app logic and in the database. |
-| 2.5 | REQ-ACC-02 | Bulk import from CSV/Excel | Not Started | `Pages/Samples/Import.cshtml.cs` is a placeholder. Start with CSV. |
+| 2.2 | REQ-ACC-01 | Add individual sample registration UI and handler | Complete | `Pages/Samples/Add.cshtml` with full form, barcode uniqueness (client + server), AliquotNumber for Plasma, RemainingSpots for Filter Paper. |
+| 2.3 | REQ-ACC-01, REQ-INV-03 | Assign box and row/column during intake | Complete | Add form includes box selector with freezer/rack context and position fields; occupied positions shown via AJAX. |
+| 2.4 | REQ-INV-04 | Prevent duplicate box-position occupancy | Complete | Enforced via DB unique index on (BoxID, PositionRow, PositionCol); `DbUpdateException` caught and reported. Import validates against DB and within-file duplicates. |
+| 2.5 | REQ-ACC-02 | Bulk import from CSV/Excel | Complete | `Pages/Samples/Import.cshtml` with CSV upload, preview/error report, and commit. Validates barcodes, study codes, sample types, box labels, and positions. |
 | 2.6 | REQ-RPT-02 | Box location lookup from sample results | In Progress | Current sample listing shows location details, but box-focused lookup is not implemented. |
 
 **Exit Criteria**
 
-- [ ] Users can add a specimen manually from the UI
-- [ ] Users can import a batch of specimens from CSV
-- [ ] Box/position conflicts are blocked clearly
+- [x] Users can add a specimen manually from the UI
+- [x] Users can import a batch of specimens from CSV
+- [x] Box/position conflicts are blocked clearly
 - [ ] Search results support real operational lookup, not just seeded demo data
 
 ---
@@ -279,3 +279,4 @@ Use this as the starting point when implementing each phase.
 | March 2, 2026 | 2.0 | Codex | Replaced generic draft with codebase-aware implementation roadmap and current status |
 | March 3, 2026 | 2.1 | Claude | Completed Phase 0: confirmed schema/model alignment, generated EF migrations, moved admin seed password to configuration, added smoke test checklist to README |
 | March 11, 2026 | 2.2 | Claude | Completed Phase 1: explicit page-level authorization on all pages; IAuditService/AuditService; Administration/Audit page with filtering and pagination; LabSetup Freezers and Racks with full CRUD; BoxTypes reference page |
+| March 11, 2026 | 2.3 | Claude | Completed Phase 2: Samples/Add with full form, barcode uniqueness, position conflict detection, Plasma/Filter Paper conditional fields; Samples/Import with CSV upload, preview/error report, and commit; LabSetup/Studies CRUD page; extended ISampleService with IsBarcodeTaken, GetOccupiedPositions, ImportSpecimensFromCsv |

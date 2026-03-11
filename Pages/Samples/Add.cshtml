@@ -6,4 +6,145 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<p>This page will contain a form for manual entry of a single new sample.</p>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+<form method="post" class="row g-3" style="max-width:800px;">
+    <div class="col-md-6">
+        <label asp-for="Input.BarcodeID" class="form-label"></label>
+        <input asp-for="Input.BarcodeID" class="form-control" id="barcodeInput" autofocus />
+        <span asp-validation-for="Input.BarcodeID" class="text-danger small"></span>
+        <small id="barcodeStatus" class="text-muted"></small>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.LegacyID" class="form-label"></label>
+        <input asp-for="Input.LegacyID" class="form-control" />
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="Input.StudyID" class="form-label"></label>
+        <select asp-for="Input.StudyID" asp-items="Model.StudyOptions" class="form-select">
+            <option value="">— Select Study —</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.SampleTypeID" class="form-label"></label>
+        <select asp-for="Input.SampleTypeID" asp-items="Model.SampleTypeOptions" class="form-select" id="sampleTypeSelect">
+            <option value="">— Select Type —</option>
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="Input.CollectionDate" class="form-label"></label>
+        <input asp-for="Input.CollectionDate" class="form-control" type="date" />
+    </div>
+
+    <div class="col-md-8" id="aliquotGroup" style="display:none;">
+        <label asp-for="Input.AliquotNumber" class="form-label"></label>
+        <select asp-for="Input.AliquotNumber" class="form-select" style="max-width:120px;">
+            <option value="">—</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+        </select>
+        <span class="form-text">Required for Plasma specimens.</span>
+    </div>
+
+    <div class="col-md-4" id="spotsGroup" style="display:none;">
+        <label asp-for="Input.RemainingSpots" class="form-label"></label>
+        <input asp-for="Input.RemainingSpots" class="form-control" type="number" min="0" max="4" value="4" style="max-width:120px;" />
+        <span class="form-text">Defaults to 4 for Filter Paper.</span>
+    </div>
+
+    <hr />
+
+    <div class="col-md-12">
+        <label asp-for="Input.BoxID" class="form-label"></label>
+        <select asp-for="Input.BoxID" asp-items="Model.BoxOptions" class="form-select" id="boxSelect">
+            <option value="">— No box assigned —</option>
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="Input.PositionRow" class="form-label"></label>
+        <input asp-for="Input.PositionRow" class="form-control" type="number" min="1" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Input.PositionCol" class="form-label"></label>
+        <input asp-for="Input.PositionCol" class="form-control" type="number" min="1" />
+    </div>
+    <div class="col-md-6" id="positionStatus">
+    </div>
+
+    <div class="col-12 mt-3">
+        <button type="submit" class="btn btn-primary">Add Specimen</button>
+        <a asp-page="/Samples" class="btn btn-secondary ms-2">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Show/hide Plasma AliquotNumber and Filter Paper RemainingSpots
+        const sampleTypeSelect = document.getElementById('sampleTypeSelect');
+        const aliquotGroup = document.getElementById('aliquotGroup');
+        const spotsGroup = document.getElementById('spotsGroup');
+
+        // Build a map of SampleTypeID → TypeName from the dropdown options
+        const typeNames = {};
+        @foreach (var st in Model.SampleTypes)
+        {
+            @:typeNames[@st.SampleTypeID] = '@st.TypeName';
+        }
+
+        function updateTypeFields() {
+            const typeName = typeNames[sampleTypeSelect.value] || '';
+            aliquotGroup.style.display = typeName.toLowerCase().includes('plasma') ? '' : 'none';
+            spotsGroup.style.display = typeName.toLowerCase().includes('filter paper') ? '' : 'none';
+        }
+        sampleTypeSelect.addEventListener('change', updateTypeFields);
+        updateTypeFields();
+
+        // Barcode uniqueness check
+        let barcodeTimer;
+        const barcodeInput = document.getElementById('barcodeInput');
+        const barcodeStatus = document.getElementById('barcodeStatus');
+
+        barcodeInput.addEventListener('input', function () {
+            clearTimeout(barcodeTimer);
+            const val = this.value.trim();
+            if (!val) { barcodeStatus.textContent = ''; return; }
+            barcodeTimer = setTimeout(async () => {
+                const resp = await fetch(`?handler=CheckBarcode&barcode=${encodeURIComponent(val)}`);
+                const data = await resp.json();
+                if (data.taken) {
+                    barcodeStatus.textContent = 'This barcode is already in use.';
+                    barcodeStatus.className = 'text-danger small';
+                } else {
+                    barcodeStatus.textContent = 'Available.';
+                    barcodeStatus.className = 'text-success small';
+                }
+            }, 400);
+        });
+
+        // Occupied position check
+        const boxSelect = document.getElementById('boxSelect');
+        const positionStatus = document.getElementById('positionStatus');
+        let occupiedPositions = [];
+
+        boxSelect.addEventListener('change', async function () {
+            occupiedPositions = [];
+            positionStatus.innerHTML = '';
+            if (!this.value) return;
+            const resp = await fetch(`?handler=OccupiedPositions&boxId=${this.value}`);
+            occupiedPositions = await resp.json();
+            if (occupiedPositions.length > 0) {
+                positionStatus.innerHTML = '<small class="text-muted">Occupied: ' +
+                    occupiedPositions.map(p => `(${p.row},${p.col})`).join(', ') + '</small>';
+            }
+        });
+    </script>
+}
