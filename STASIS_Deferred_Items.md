@@ -37,7 +37,7 @@ These items have groundwork in place but need additional work to be fully functi
 
 ### 5. Automated Tests (Phase 7, item 7.6)
 
-- **What exists:** Test guide with priority scenarios and sample code in `STASIS_Phase7_Manual_Testing.md`.
+- **What exists:** Test guide with priority scenarios and sample code in `STASIS_Test_Plan.md`.
 - **What's missing:** No xUnit test project created yet. No tests coded.
 - **Where to implement:** Create `STASIS.Tests` project per guide in manual testing doc.
 
@@ -53,14 +53,14 @@ These items have groundwork in place but need additional work to be fully functi
 | Barcode scanner autofocus | Phase 7 | All input fields have `autofocus` |
 | Color-coded box grid | Phase 3/7 | Implemented and verified |
 | Search performance indexes | Phase 7 | Migration `AddSearchPerformanceIndexes` adds indexes on Status, StudyID, SampleTypeID |
-| Backup/restore procedures | Phase 7 | Documented in `STASIS_Phase7_Manual_Testing.md` |
-| Deployment checklist | Phase 7 | Documented in `STASIS_Phase7_Manual_Testing.md` |
+| Backup/restore procedures | Phase 7 | Documented in `STASIS_Test_Plan.md` |
+| Deployment checklist | Phase 7 | Documented in `STASIS_Test_Plan.md` |
 
 ---
 
 ## Manual Testing Required
 
-These items require manual verification and are documented in `STASIS_Phase7_Manual_Testing.md`:
+These items require manual verification and are documented in `STASIS_Test_Plan.md`:
 
 - [ ] Barcode scanner testing with physical scanner hardware
 - [ ] Box occupancy grid visual verification
@@ -80,4 +80,4 @@ If returning to this list, the recommended order is:
 3. **Email distribution** (item 1) — depends on SMTP setup
 4. **Whole-box shipping** (item 2) — nice-to-have refinement
 5. **Staging status** (item 3) — workflow refinement
-6. **Manual testing** — run through checklists in `STASIS_Phase7_Manual_Testing.md`
+6. **Manual testing** — run through checklists in `STASIS_Test_Plan.md`

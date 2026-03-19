@@ -213,11 +213,11 @@ This plan translates the requirements in `system_requirements.md` into a practic
 |-------|--------|-------------|--------|-------|
 | 7.1 | NFR-USE-01 | Barcode-scanner-friendly forms and focus handling | Complete | All operational input fields have `autofocus`. Standard form Enter-key submission works. Rebox has dedicated Enter-key JS handler. Manual testing with physical scanner required. |
 | 7.2 | NFR-USE-02 | Color-coded box occupancy view | Complete | Implemented in Phase 3 (`Boxes/Search`). Green/grey/yellow/blue cells. Manual visual verification recommended. |
-| 7.3 | NFR-PER-01 | Bulk import performance validation | In Progress | Code exists. Manual testing with 1000+ row CSV required. See `STASIS_Phase7_Manual_Testing.md`. |
+| 7.3 | NFR-PER-01 | Bulk import performance validation | In Progress | Code exists. Manual testing with 1000+ row CSV required. See `STASIS_Test_Plan.md`. |
 | 7.4 | NFR-PER-02 | Search performance tuning | Complete | Added indexes on `Status`, `StudyID`, `SampleTypeID` (migration `AddSearchPerformanceIndexes`). Manual benchmarking with 1000+ records recommended. |
-| 7.5 | NFR-SYS-02 | Backup and restore procedures | Complete | Documented in `STASIS_Phase7_Manual_Testing.md` with pg_dump scripts, crontab, and restore commands. Manual execution and verification required. |
-| 7.6 | N/A | Automated test project for services and page models | Not Started | Test project guide and priority scenarios documented in `STASIS_Phase7_Manual_Testing.md`. No tests coded yet. |
-| 7.7 | N/A | Deployment checklist for IIS + PostgreSQL | Complete | Full deployment checklist (Linux/systemd + IIS alternative) documented in `STASIS_Phase7_Manual_Testing.md`. |
+| 7.5 | NFR-SYS-02 | Backup and restore procedures | Complete | Documented in `STASIS_Test_Plan.md` with pg_dump scripts, crontab, and restore commands. Manual execution and verification required. |
+| 7.6 | N/A | Automated test project for services and page models | Not Started | Test project guide and priority scenarios documented in `STASIS_Test_Plan.md`. No tests coded yet. |
+| 7.7 | N/A | Deployment checklist for IIS + PostgreSQL | Complete | Full deployment checklist (Linux/systemd + IIS alternative) documented in `STASIS_Test_Plan.md`. |
 
 **Exit Criteria**
 
@@ -284,4 +284,4 @@ Use this as the starting point when implementing each phase.
 | March 11, 2026 | 2.5 | Claude | Completed Phase 4: IShipmentService/ShipmentService with CSV import, auto-matching, 3-level approval, ship action; Shipments/Create with import+availability report; Shipments/History with batch list, detail drill-down, approval UI, ship form, CSV manifest download |
 | March 11, 2026 | 2.6 | Claude | Completed Phase 5: Discard workflow (Samples/Discard page with barcode lookup and eligibility check); centralized Administration/Approvals page for shipment and discard approvals; 3-level discard approval (ED+Regulatory+PI all required); execute-discard action; audit trail added to user management (create/edit/password-reset) |
 | March 11, 2026 | 2.7 | Claude | Completed Phase 6: Filter paper spot tracking with RemainingSpots decrement, FilterPaperUsage history, Depleted status; international/local spot limits enforced (max 2 each); Plasma Aliquot-2 blocked from outbound shipment; ValidateShipmentAsync pre-flight checks; Samples/Detail page with filter paper usage history and plasma info; box lookup links from Samples list |
-| March 12, 2026 | 2.8 | Claude | Phase 7: Autofocus on all barcode/label inputs (Search, Discard); search performance indexes on Status/StudyID/SampleTypeID with EF migration; STASIS_Phase7_Manual_Testing.md with barcode scanner testing, performance benchmarks, backup/restore scripts, deployment checklist (Linux + IIS), and automated test guide |
+| March 12, 2026 | 2.8 | Claude | Phase 7: Autofocus on all barcode/label inputs (Search, Discard); search performance indexes on Status/StudyID/SampleTypeID with EF migration; STASIS_Test_Plan.md with barcode scanner testing, performance benchmarks, backup/restore scripts, deployment checklist (Linux + IIS), and automated test guide |
